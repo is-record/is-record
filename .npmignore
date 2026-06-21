@@ -1,0 +1,12 @@
+.*.swp
+._*
+.DS_Store
+.git
+.npmrc
+npm-debug.log
+src
+__tests__
+scripts
+.github
+.idea
+.husky
