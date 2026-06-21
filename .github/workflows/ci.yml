@@ -1,0 +1,51 @@
+name: CI
+
+# Validation gate for PRs and feature-branch pushes. Master pushes go through
+# the Release workflow instead, which calls the same validate workflow before
+# publishing.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+      - develop
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches-ignore:
+      - master
+    paths:
+      - 'src/**'
+      - '__tests__/**'
+      - 'bun.lock'
+      - 'package.json'
+      - 'tsconfig*.json'
+      - 'rollup.config*.cjs'
+      - 'biome.json'
+      - '.releaserc.json'
+      - '.github/workflows/**'
+
+# Cancel superseded runs on the same branch — feature-branch CI is cheap to
+# re-run and the only thing that matters is the latest commit's verdict.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Matrix on the two currently-supported LTS Node lines:
+  #   - 22 (Maintenance LTS until 2027-04-30) — also the engines.node floor
+  #   - 24 (Active LTS until 2026-10-20, then Maintenance until 2028-04-30)
+  validate:
+    name: Validate
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
+    uses: ./.github/workflows/validate.yml
+    with:
+      node-version: ${{ matrix.node-version }}
+      run-build: true
